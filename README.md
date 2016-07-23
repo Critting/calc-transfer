@@ -1,3 +1,26 @@
+# IV evolution and transfer tool
+
+```
+# Installation
+  (Requires Python 2 or 3)
+  in terminal/cmd in repo: 
+    pip install -r requirements.txt
+
+# Usage
+  Basic usage (listing of various pokemon/stats with default settings)
+  pokeIV.py -u USERNAME -p PASSWORD -l LOCATION
+
+# Options
+  Options are available in the config file: config.json.
+
+  To view all available options:
+    pokeIV.py -h
+
+  The only options which must be passed in the command line are optional:
+    -t: transfers duplicate pokemon with IV below optional threshold
+    -e: evolves all T1 pokemon with highest IV first
+```
+
 # Pokemon Go API for Python
 
 This was originally based on
