@@ -56,7 +56,7 @@ def init_config():
     parser.add_argument("-hm", "--hard_minimum", help="transfer candidates will be selected if they are below minimumIV (will transfer unique pokemon)", action="store_true")
     parser.add_argument("-cp", "--cp_override", help="will keep pokemon that have CP equal to or above the given limit, regardless of IV")
     parser.add_argument("-v", "--verbose", help="displays additional information about each pokemon", action="store_true")
-    parser.set_defaults(DEBUG=False, TEST=False, EVOLVE=False)
+    parser.set_defaults(EVOLVE=False, VERBOSE=False)
     config = parser.parse_args()
 	  
     # Passed in arguments shoud trump
@@ -230,7 +230,7 @@ def main():
         best = get_best_pokemon(pokemon, float(config.minimumIV), mincp)
     # rest of pokemon
     extras = list(set(pokemon) - set(best))
-    other = []
+    others = []
     # evolution information
     uniques = get_unique_counts(pokemon)
     evolves = get_evolve_counts(pokemon)
@@ -258,24 +258,25 @@ def main():
         for p in extras:
             id = str(p.number)
             used[id] = 0 if id not in used else used[id]
-            if id in evolves.keys() and used[id] < (uniques[id] - evolves[id]) and config.verbose:
-                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
-            elif id in evolves.keys() and used[id] < (uniques[id] - evolves[id]) > 0:
-                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
+            if id not in evolves.keys() or used[id] < (uniques[id] - evolves[id]):
+                if config.verbose:
+                    print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
+                else:   
+                    print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))        
             else:
-                other.append(p)
+                others.append(p)
             used[id] = used[id] + 1
-    #------- extras aren't to be transfered
-    if other:
-        other.sort(key=lambda x: x.iv, reverse=True)
+    #------- extras that aren't to be transfered
+    if others:
+        others.sort(key=lambda x: x.iv, reverse=True)
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Other Pokemon','------------'))
         if config.verbose:
             print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
-            for p in other:
+            for p in others:
                 print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
         else:
             print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
-            for p in other:
+            for p in others:
                 print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
     #------- evolve candidate  pokemon
     if any(evolves):
@@ -291,7 +292,16 @@ def main():
                 print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(str(p.name),evolves[id],uniques[id],""))
             else:
                 print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(str(p.name),evolves[id],uniques[id],needed[id]))
-	
+
+    #------- transfer extra pokemon
+    if config.transfer:
+        for p in sorted(list(set(extras) - set(others)), key=lambda x: x.iv):
+            print('{0:<35} {1:<8} {2:<8.2%}'.format('==>transferring pokemon: '+str(p.name),str(p.cp),p.ivPercent,))
+            session.releasePokemon(p)
+            if id in uniques.keys():
+                uniques[id] = uniques[id] - 1 #we now have one fewer of these...
+            time.sleep(int(config.transfer_delay))
+
     #------- evolving t1 pokemon
     if config.evolve:
         pokemon.sort(key=lambda x: x.iv, reverse=True)
@@ -302,7 +312,7 @@ def main():
             for p in pokemon[:]:
                 id = str(p.number)
                 if id in evolves.keys() and (evolves[id] - needed[id]) > 0:
-                    print('{0:<30} {1:<5} {2:<8.2%}'.format('evolving pokemon: '+str(p.name),str(p.cp),p.ivPercent))
+                    print('{0:<35} {1:<8} {2:<8.2%}'.format('evolving pokemon: '+str(p.name),str(p.cp),p.ivPercent))
                     session.evolvePokemon(p)
                     evolves[id] = evolves[id] - 1
                     uniques[id] = uniques[id] - 1
@@ -310,19 +320,6 @@ def main():
                     evolved = True
                     count += 1
                     time.sleep(int(config.evolution_delay))
-	
-    #------- transfer extra pokemon
-    if config.transfer:
-        extras.sort(key=lambda x: x.iv)
-        for p in extras:
-            id = str(p.number)
-            #if there are more of this pokemon than can be evolved
-            if id not in evolves.keys() or id not in uniques.keys() or uniques[id] > evolves[id]:
-                print('{0:<30} {1:<5} {2:<8.2%}'.format('transferring pokemon: '+str(p.name),str(p.cp),p.ivPercent))
-                session.releasePokemon(p)
-                if id in uniques.keys():
-                    uniques[id] = uniques[id] - 1 #we now have one fewer of these...
-                time.sleep(int(config.transfer_delay))
     
 if __name__ == '__main__':
     main()
