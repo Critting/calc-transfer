@@ -27,7 +27,7 @@ def setupLogger():
     logger.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('Line %(lineno)d,%(filename)s - %(asctime)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(message)s')
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
@@ -231,10 +231,25 @@ def main():
     # rest of pokemon
     extras = list(set(pokemon) - set(best))
     others = []
+    transfers = []
     # evolution information
     uniques = get_unique_counts(pokemon)
     evolves = get_evolve_counts(pokemon)
-    needed = get_needed_counts(pokemon, uniques, evolves)
+    needed = get_needed_counts(pokemon, uniques, evolves)    
+    #------- get transfers and other
+    if extras:
+        extras.sort(key=lambda x: x.iv)
+        used = dict()
+        for p in extras:
+            id = str(p.number)
+            used[id] = 0 if id not in used else used[id]
+            if id not in evolves.keys() or used[id] < (uniques[id] - evolves[id]):
+                transfers.append(p)
+            else:
+                others.append(p)
+            used[id] = used[id] + 1
+    others.sort(key=lambda x: x.iv, reverse=True)
+    transfers.sort(key=lambda x: x.iv)	
     #------- best pokemon
     if best:
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Highest IV Pokemon','------------'))
@@ -247,29 +262,18 @@ def main():
             for p in best:
                 print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
     #------- transferable pokemon
-    if extras:
-        extras.sort(key=lambda x: x.iv)
-        used = dict()
-        for p in extras:
-            id = str(p.number)
-            used[id] = 0 if id not in used else used[id]
-            if id not in evolves.keys() or used[id] < (uniques[id] - evolves[id]):
-                if len(used) == 1 and used.values()[0] == 0:
-                    print('{0:<15} {1:^20} {2:>15}'.format('------------','May be transfered','------------'))
-                    if config.verbose:
-                        print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))    
-                    else:
-                        print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
-                if config.verbose:
-                    print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
-                else:   
-                    print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))        
-            else:
-                others.append(p)
-            used[id] = used[id] + 1
+    if transfers:	
+        print('{0:<15} {1:^20} {2:>15}'.format('------------','May be transfered','------------'))
+        if config.verbose:
+            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
+            for p in transfers:
+                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))  
+        else:
+            print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
+            for p in transfers:
+                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
     #------- extras that aren't to be transfered
     if others:
-        others.sort(key=lambda x: x.iv, reverse=True)
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Other Pokemon','------------'))
         if config.verbose:
             print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
@@ -296,8 +300,8 @@ def main():
 
     #------- transfer extra pokemon
     if config.transfer:
-        for p in sorted(list(set(extras) - set(others)), key=lambda x: x.iv):
-            print('{0:<35} {1:<8} {2:<8.2%}'.format('==>transferring pokemon: '+str(p.name),str(p.cp),p.ivPercent,))
+        for p in transfers:
+            logging.info('{0:<35} {1:<8} {2:<8.2%}'.format('transferring pokemon: '+str(p.name),str(p.cp),p.ivPercent,))
             session.releasePokemon(p)
             if id in uniques.keys():
                 uniques[id] = uniques[id] - 1 #we now have one fewer of these...
@@ -313,7 +317,7 @@ def main():
             for p in pokemon[:]:
                 id = str(p.number)
                 if id in evolves.keys() and (evolves[id] - needed[id]) > 0:
-                    print('{0:<35} {1:<8} {2:<8.2%}'.format('evolving pokemon: '+str(p.name),str(p.cp),p.ivPercent))
+                    logging.info('{0:<35} {1:<8} {2:<8.2%}'.format('evolving pokemon: '+str(p.name),str(p.cp),p.ivPercent))
                     session.evolvePokemon(p)
                     evolves[id] = evolves[id] - 1
                     uniques[id] = uniques[id] - 1
