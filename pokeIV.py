@@ -239,7 +239,7 @@ def main():
     if best:
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Highest IV Pokemon','------------'))
         if config.verbose:
-            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[CP]','[ATK]','[DEF]','[STA]','[IV]'))
+            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
             for p in best:
                 print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
         else:
@@ -250,7 +250,7 @@ def main():
     if extras:
         print('{0:<15} {1:^20} {2:>15}'.format('------------','May be transfered','------------'))
         if config.verbose:
-            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[CP]','[ATK]','[DEF]','[STA]','[IV]'))        
+            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))    
         else:
             print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
         extras.sort(key=lambda x: x.iv)
@@ -270,7 +270,7 @@ def main():
         other.sort(key=lambda x: x.iv, reverse=True)
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Other Pokemon','------------'))
         if config.verbose:
-            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[CP]','[ATK]','[DEF]','[STA]','[IV]'))
+            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
             for p in other:
                 print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
         else:
