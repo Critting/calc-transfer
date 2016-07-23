@@ -47,7 +47,7 @@ def init_config():
     parser.add_argument("-u", "--username", help="Username", required=required("username"))
     parser.add_argument("-p", "--password", help="Password")
     parser.add_argument("-l", "--location", help="Location", required=required("location"))
-    parser.add_argument("-t", "--transfer", help="Transfers all but the highest of each pokemon (see -ivmin)", action="store_true")
+    parser.add_argument("-t", "--transfer", help="Transfers all but the highest of each pokemon (see -m)", action="store_true")
     parser.add_argument("-e", "--evolve", help="Evolves as many T1 pokemon that it can (starting with highest IV)", action="store_true")
     parser.add_argument("-m", "--minimumIV", help="All pokemon equal to or above this IV value are kept regardless of duplicates")
     parser.add_argument("-me", "--max_evolutions", help="Maximum number of evolutions in one pass")
