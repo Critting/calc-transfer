@@ -22,6 +22,19 @@ from location import Location
 # add directory of this file to PATH, so that the package will be found
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
+# -- global dictionaries for pokedex, families, and evolution prices
+with open('names.tsv') as f:
+    f.readline()
+    POKEDEX = dict(csv.reader(f, delimiter='\t'))
+    
+with open('families.tsv') as f:
+    f.readline()
+    FAMILIES = dict(csv.reader(f, delimiter='\t'))    
+    
+with open('evolves.tsv') as f:
+    f.readline()
+    COSTS = dict(csv.reader(f, delimiter='\t'))
+
 def setupLogger():
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -56,6 +69,7 @@ def init_config():
     parser.add_argument("-hm", "--hard_minimum", help="transfer candidates will be selected if they are below minimumIV (will transfer unique pokemon)", action="store_true")
     parser.add_argument("-cp", "--cp_override", help="will keep pokemon that have CP equal to or above the given limit, regardless of IV")
     parser.add_argument("-v", "--verbose", help="displays additional information about each pokemon", action="store_true")
+    parser.add_argument("-el", "--evolve_list", help="list of the only pokemon to evolve by ID (ex: 1 = bulbasaur)", action="append")
     parser.set_defaults(EVOLVE=False, VERBOSE=False)
     config = parser.parse_args()
 	  
@@ -100,10 +114,16 @@ def get_unique_counts(pokemon):
                 uniques[str(p.number)] = 1
     return uniques
 				
-def get_evolve_counts(pokemon):
+def get_evolve_counts(pokemon, evolve_list):
     evolves = dict()
     total = 0
+    
+    if evolve_list is not None:
+        evolve_list = [x.lower() for x in evolve_list]
+    
     for p in pokemon:
+        if evolve_list is not None and str(p.number) not in evolve_list and p.name.lower() not in evolve_list:
+            continue
         if str(p.number) == str(p.family) and str(p.number) not in evolves and hasattr(p,'cost'):
             extraCandy = (p.candy/p.cost)*2 #we get 2 everytime we evolve (evol + transfer)
             totalCandy = p.candy + extraCandy
@@ -119,32 +139,20 @@ def get_evolve_counts(pokemon):
 def get_pokemon(pokemon, candies):
     data = []
     
-    with open('names.tsv') as f:
-        f.readline()
-        names = dict(csv.reader(f, delimiter='\t'))
-        
-    with open('families.tsv') as f:
-        f.readline()
-        families = dict(csv.reader(f, delimiter='\t'))
-        
-    with open('evolves.tsv') as f:
-        f.readline()
-        evolves = dict(csv.reader(f, delimiter='\t'))
-    
     for p in pokemon:
         pok = type('',(),{})
         pok.id = p.id
         pok.number = p.pokemon_id
-        pok.name = names[str(pok.number)]
-        pok.family = families[str(pok.number)]
+        pok.name = POKEDEX[str(pok.number)]
+        pok.family = FAMILIES[str(pok.number)]
         pok.stamina = int(p.individual_stamina) if hasattr(p,"individual_stamina") else 0
         pok.attack = int(p.individual_attack) if hasattr(p,"individual_attack") else 0
         pok.defense = int(p.individual_defense) if hasattr(p,"individual_defense") else 0
         pok.iv = ((pok.stamina + pok.attack + pok.defense) / float(45))*100
         pok.ivPercent = pok.iv/100
         pok.cp = p.cp
-        if int(evolves[str(pok.number)]) > 0:
-            pok.cost = int(evolves[str(pok.number)])
+        if int(COSTS[str(pok.number)]) > 0:
+            pok.cost = int(COSTS[str(pok.number)])
         pok.candy = candies[int(pok.family)]
         data.append(pok)
     return data
@@ -234,7 +242,7 @@ def main():
     transfers = []
     # evolution information
     uniques = get_unique_counts(pokemon)
-    evolves = get_evolve_counts(pokemon)
+    evolves = get_evolve_counts(pokemon, config.evolve_list)
     needed = get_needed_counts(pokemon, uniques, evolves)    
     #------- get transfers and other
     if extras:
