@@ -299,7 +299,8 @@ def main():
                 print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(str(p.name),evolves[id],uniques[id],needed[id]))
 
     #------- transfer extra pokemon
-    if config.transfer:
+    if config.transfer and transfers:
+        print('{0:<15} {1:^20} {2:>15}'.format('------------','Transferring','------------'))
         for p in transfers:
             logging.info('{0:<35} {1:<8} {2:<8.2%}'.format('transferring pokemon: '+str(p.name),str(p.cp),p.ivPercent,))
             session.releasePokemon(p)
