@@ -230,6 +230,7 @@ def main():
         best = get_best_pokemon(pokemon, float(config.minimumIV), mincp)
     # rest of pokemon
     extras = list(set(pokemon) - set(best))
+    other = []
     # evolution information
     uniques = get_unique_counts(pokemon)
     evolves = get_evolve_counts(pokemon)
@@ -245,24 +246,37 @@ def main():
             print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
             for p in best:
                 print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
-    #------- extra pokemon
+    #------- transferable pokemon
     if extras:
         print('{0:<15} {1:^20} {2:>15}'.format('------------','May be transfered','------------'))
         if config.verbose:
             print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[CP]','[ATK]','[DEF]','[STA]','[IV]'))        
         else:
             print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
-        extras.sort(key=lambda x: x.iv, reverse=True)
-        evolved = True
-        count = 0
-        while evolved and count < int(config.max_evolutions):
-            evolved = False
-            for p in extras[:]:
-                id = str(p.number)
-                if id in evolves.keys() and (evolves[id] - needed[id]) > 0 and config.verbose:
-                    print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
-                elif id in evolves.keys() and (evolves[id] - needed[id]) > 0:
-                    print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
+        extras.sort(key=lambda x: x.iv)
+        used = dict()
+        for p in extras:
+            id = str(p.number)
+            used[id] = 0 if id not in used else used[id]
+            if id in evolves.keys() and used[id] < (uniques[id] - evolves[id]) and config.verbose:
+                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
+            elif id in evolves.keys() and used[id] < (uniques[id] - evolves[id]) > 0:
+                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
+            else:
+                other.append(p)
+            used[id] = used[id] + 1
+    #------- extras aren't to be transfered
+    if other:
+        other.sort(key=lambda x: x.iv, reverse=True)
+        print('{0:<15} {1:^20} {2:>15}'.format('------------','Other Pokemon','------------'))
+        if config.verbose:
+            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[CP]','[ATK]','[DEF]','[STA]','[IV]'))
+            for p in other:
+                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
+        else:
+            print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
+            for p in other:
+                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
     #------- evolve candidate  pokemon
     if any(evolves):
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Available evolutions','------------'))
