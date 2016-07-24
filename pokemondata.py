@@ -46,6 +46,8 @@ class PokemonData(dict):
         if self["extra"]:
             used = dict()
             for p in self["extra"]:
+                if self.black_listed(p) or not self.white_listed(p):
+                    continue
                 id = str(p.number)
                 used[id] = 0 if id not in used else used[id]
                 if id not in self["evolve_counts"] or used[id] < (self["unique_counts"][id] - self["evolve_counts"][id]):
@@ -59,6 +61,8 @@ class PokemonData(dict):
         if any(self["evolve_counts"]):
             count = dict()
             for p in self["all"]:
+                if self.black_listed(p) or not self.white_listed(p):
+                    continue
                 id = str(p.number)
                 count[id] = 0 if id not in count else count[id]
                 if id in self["evolve_counts"] and count[id] < int(self["evolve_counts"][id]):
@@ -75,15 +79,26 @@ class PokemonData(dict):
                 else:
                     self["unique_counts"][str(p.number)] = 1
 
+    #returns true if pokemon is black listed, false otherwise
+    def black_listed(self,pokemon):
+        if self["config"].black_list is not None and (str(pokemon.number) in self["config"].black_list or pokemon.name.lower() in self["config"].black_list):
+            return True
+        else:
+            return False
+            
+    #returns true if pokemon is white listed or if white list does not exist, false otherwse
+    def white_listed(self,pokemon):
+        if self["config"].white_list is None or str(pokemon.number) in self["config"].white_list or pokemon.name.lower() in self["config"].white_list:
+            return True
+        else:
+            return False
+            
     def set_evolve_counts(self):
         self["evolve_counts"] = dict()
         total = 0
 
-        if self["config"].evolve_list is not None:
-            self["config"].evolve_list = [x.lower() for x in self["config"].evolve_list]
-
         for p in self["all"]:
-            if self["config"].evolve_list is not None and str(p.number) not in self["config"].evolve_list and p.name.lower() not in self["config"].evolve_list:
+            if self.black_listed(p) or not self.white_listed(p):
                 continue
             if str(p.number) == str(p.family) and str(p.number) not in self["evolve_counts"] and hasattr(p,'cost'):
                 if int(p.candy/p.cost) > 0:
