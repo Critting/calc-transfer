@@ -125,14 +125,9 @@ def get_evolve_counts(pokemon, evolve_list):
         if evolve_list is not None and str(p.number) not in evolve_list and p.name.lower() not in evolve_list:
             continue
         if str(p.number) == str(p.family) and str(p.number) not in evolves and hasattr(p,'cost'):
-            extraCandy = (p.candy/p.cost)*2 #we get 2 everytime we evolve (evol + transfer)
-            totalCandy = p.candy + extraCandy
-            while int(extraCandy/p.cost) >= 1:
-                totalCandy += 2 #2 more for every evolve we get from extras
-                extraCandy = int(extraCandy/p.cost) + 2
-            if int(totalCandy/p.cost) > 0:
-                evolves[str(p.number)] = int(totalCandy/p.cost)
-                total += int(totalCandy/p.cost)
+            if int(p.candy/p.cost) > 0:
+                evolves[str(p.number)] = int(p.candy/p.cost)
+                total += int(p.candy/p.cost)
     evolves["total"] = total
     return evolves
 
@@ -192,6 +187,25 @@ def get_best_pokemon(pokemon, ivmin, cpmin):
 
     return best
 
+def print_header(title):
+    print('{0:<15} {1:^20} {2:>15}'.format('------------',title,'------------'))
+
+def print_pokemon(pokemon, verbose):
+    if verbose:
+        print_pokemon_verbose(pokemon)
+    else:
+        print_pokemon_min(pokemon)
+    
+def print_pokemon_min(pokemon):
+    print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
+    for p in pokemon:
+        print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent)) 
+
+def print_pokemon_verbose(pokemon):
+    print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
+    for p in pokemon:
+        print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
+
 def main():
     setupLogger()
     logging.debug('Logger set up')
@@ -240,6 +254,7 @@ def main():
     extras = list(set(pokemon) - set(best))
     others = []
     transfers = []
+    evolutions = []
     # evolution information
     uniques = get_unique_counts(pokemon)
     evolves = get_evolve_counts(pokemon, config.evolve_list)
@@ -257,83 +272,66 @@ def main():
                 others.append(p)
             used[id] = used[id] + 1
     others.sort(key=lambda x: x.iv, reverse=True)
-    transfers.sort(key=lambda x: x.iv)	
+    transfers.sort(key=lambda x: x.iv)
+    #------- get pokemon to be evolved
+    if any(evolves):
+        pokemon.sort(key=lambda x: x.iv, reverse=True)
+        count = dict()
+        for p in pokemon:
+            id = str(p.number)
+            count[id] = 0 if id not in count else count[id]
+            if id in evolves.keys() and count[id] < int(evolves[id]):
+                evolutions.append(p)
+                count[id] = count[id] + 1
     #------- best pokemon
     if best:
-        print('{0:<15} {1:^20} {2:>15}'.format('------------','Highest IV Pokemon','------------'))
-        if config.verbose:
-            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
-            for p in best:
-                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
-        else:
-            print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
-            for p in best:
-                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
+        print_header('Highest IV Pokemon')
+        print_pokemon(best, config.verbose)
     #------- transferable pokemon
-    if transfers:	
-        print('{0:<15} {1:^20} {2:>15}'.format('------------','May be transfered','------------'))
-        if config.verbose:
-            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
-            for p in transfers:
-                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))  
-        else:
-            print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
-            for p in transfers:
-                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
+    if transfers:
+        print_header('May be transfered')
+        print_pokemon(transfers, config.verbose)
     #------- extras that aren't to be transfered
     if others:
-        print('{0:<15} {1:^20} {2:>15}'.format('------------','Other Pokemon','------------'))
-        if config.verbose:
-            print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8}'.format('[POKEMON]','[ATK]','[DEF]','[STA]','[CP]','[IV]'))
-            for p in others:
-                print('{0:<10} {1:>6} {2:>6} {3:>6} {4:>8} {5:>8.2%}'.format(str(p.name),str(p.attack),str(p.defense),str(p.stamina),str(p.cp),p.ivPercent))
-        else:
-            print('{0:<10} {1:>8} {2:>8}'.format('[pokemon]','[CP]','[IV]'))
-            for p in others:
-                print('{0:<10} {1:>8} {2:>8.2%}'.format(str(p.name),str(p.cp),p.ivPercent))
+        print_header('Other Pokemon')
+        print_pokemon(others, config.verbose)
     #------- evolve candidate  pokemon
-    if any(evolves):
-        print('{0:<15} {1:^20} {2:>15}'.format('------------','Available evolutions','------------'))
-        print('{0:<15} {1:^20} {2:>15}'.format('------------','TOTAL: '+str(evolves["total"])+' / '+config.max_evolutions,'------------'))
+    if evolutions:
+        print_header('Available evolutions')
+        print_header('TOTAL: '+str(evolves["total"])+' / '+config.max_evolutions)
         print('{0:<10} {1:<15} {2:<17} {3:>10}'.format('[pokemon]','[# evolutions]','[# in inventory]','[# needed]'))
-    shown = []
-    for p in pokemon:
-        id = str(p.number)
-        if id not in shown and id in evolves.keys():
-            shown.append(id)
-            if needed[id] <= 0:
-                print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(str(p.name),evolves[id],uniques[id],""))
-            else:
-                print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(str(p.name),evolves[id],uniques[id],needed[id]))
-
+        for id in list(evolves.keys()):
+            if id in needed.keys() and id in uniques.keys() and needed[id] <= 0:
+                print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(POKEDEX[id],evolves[id],uniques[id],""))
+            elif id in needed.keys() and id in uniques.keys():
+                print('{0:<10} {1:^15} {2:^17} {3:^10}'.format(POKEDEX[id],evolves[id],uniques[id],needed[id]))
     #------- transfer extra pokemon
     if config.transfer and transfers:
         print('{0:<15} {1:^20} {2:>15}'.format('------------','Transferring','------------'))
-        for p in transfers:
+        for p in transfers[:]:
             logging.info('{0:<35} {1:<8} {2:<8.2%}'.format('transferring pokemon: '+str(p.name),str(p.cp),p.ivPercent,))
             session.releasePokemon(p)
             if id in uniques.keys():
                 uniques[id] = uniques[id] - 1 #we now have one fewer of these...
+            if p in transfers:
+                transfers.remove(p)
+            if p in pokemon:
+                pokemon.remove(p)
             time.sleep(int(config.transfer_delay))
-
     #------- evolving t1 pokemon
-    if config.evolve:
-        pokemon.sort(key=lambda x: x.iv, reverse=True)
-        evolved = True
-        count = 0
-        while evolved and count < int(config.max_evolutions):
-            evolved = False
-            for p in pokemon[:]:
-                id = str(p.number)
-                if id in evolves.keys() and (evolves[id] - needed[id]) > 0:
-                    logging.info('{0:<35} {1:<8} {2:<8.2%}'.format('evolving pokemon: '+str(p.name),str(p.cp),p.ivPercent))
-                    session.evolvePokemon(p)
-                    evolves[id] = evolves[id] - 1
-                    uniques[id] = uniques[id] - 1
-                    pokemon.remove(p)
-                    evolved = True
-                    count += 1
-                    time.sleep(int(config.evolution_delay))
+    if config.evolve and evolutions:
+        for p in evolutions[:]:
+            logging.info('{0:<35} {1:<8} {2:<8.2%}'.format('evolving pokemon: '+str(p.name),str(p.cp),p.ivPercent))
+            session.evolvePokemon(p)
+            evolves[id] = evolves[id] - 1
+            uniques[id] = uniques[id] - 1
+            if p in evolutions:
+                evolutions.remove(p)
+            if p in pokemon:
+                pokemon.remove(p)
+            if p in extras:
+                extras.remove(p)
+            time.sleep(int(config.evolution_delay))
     
 if __name__ == '__main__':
     main()
