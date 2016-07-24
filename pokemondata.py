@@ -24,8 +24,6 @@ class PokemonData(dict):
         self["all"].sort(key=lambda x: x.iv, reverse=True)
 
     def set_best(self):
-        if len(self["all"]) == 0:
-            return []
         self["best"] = []
 
         for p in self["all"]:
@@ -113,8 +111,6 @@ class PokemonData(dict):
                 self["needed_counts"][str(p.number)] = self["evolve_counts"][str(p.number)] - self["unique_counts"][str(p.number)]
 
     def set_top(self):
-        if len(self["all"]) == 0:
-            return []
         self["best"] = []
 
         for p in self["all"]:
