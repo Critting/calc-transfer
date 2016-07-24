@@ -1,5 +1,37 @@
+import time
+
 class PokemonData(dict):
     #A dictionary for all of the key information used in pokeIV
+    def __init__(self, pokemon, candies, pokedex, family, cost, config, session):
+        self.init_all(candies, pokedex, family, cost, config, session, pokemon)
+    
+    #takes a list of pokemon from the API, 
+    #a candies dict from the API,
+    #a pokedex dict {number,name}, 
+    #a family dict {number, family}, 
+    #an evolve cost dict {number, cost},
+    #and the configuration options
+    def init_all(self, candies, pokedex, family, cost, config, session=None, pokemon=None):
+        self["candy"] = candies
+        self["pokedex"] = pokedex
+        self["family"] = family
+        self["cost"] = cost
+        self["config"] = config
+        if pokemon is not None:
+            self.set_all(pokemon)
+        if session is not None:
+            self["session"] = session
+        if self["config"]["hard_minimum"]:
+            self.set_top()
+        else:
+            self.set_best()
+        self.set_evolve_counts()
+        self.set_unique_counts()
+        self.set_needed_counts()
+        self["extra"] = sorted(list(set(self["all"]) - set(self["best"])), key=lambda x: x.iv)
+        self.set_transfer()
+        self["other"] = sorted(list(set(self["extra"]) - set(self["transfer"])), key=lambda x: x.iv, reverse=True)
+        self.set_evolve()
     
     def set_all(self, pokemon):
         self["all"] = []
@@ -31,10 +63,10 @@ class PokemonData(dict):
             if not any(x.number == p.number for x in self["best"]):
                 self["best"].append(p)
             #if it passes the minimum iv test
-            elif p.iv >= float(self["config"].minimumIV):
+            elif p.iv >= float(self["config"]["minimumIV"]):
                 self["best"].append(p)
             #if cp_override is set, check CP
-            elif self["config"].cp_override is not None and int(self["config"].cp_override) > 0 and int(p.cp) >= int(self["config"].cp_override):
+            elif self["config"]["cp_override"] is not None and int(self["config"]["cp_override"]) > 0 and int(p.cp) >= int(self["config"]["cp_override"]):
                 self["best"].append(p)
 
         self["best"].sort(key=lambda x: x.iv, reverse=True)
@@ -48,7 +80,7 @@ class PokemonData(dict):
                     continue
                 id = str(p.number)
                 used[id] = 0 if id not in used else used[id]
-                if self["config"].force or id not in self["evolve_counts"] or used[id] < (self["unique_counts"][id] - self["evolve_counts"][id]):
+                if self["config"]["force"] or id not in self["evolve_counts"] or used[id] < (self["unique_counts"][id] - self["evolve_counts"][id]):
                     self["transfer"].append(p)
                 used[id] = used[id] + 1
 
@@ -79,14 +111,14 @@ class PokemonData(dict):
 
     #returns true if pokemon is black listed, false otherwise
     def black_listed(self,pokemon):
-        if self["config"].black_list is not None and (str(pokemon.number) in self["config"].black_list or pokemon.name.lower() in self["config"].black_list):
+        if self["config"]["black_list"] is not None and (str(pokemon.number) in self["config"]["black_list"] or pokemon.name.lower() in self["config"]["black_list"]):
             return True
         else:
             return False
             
     #returns true if pokemon is white listed or if white list does not exist, false otherwse
     def white_listed(self,pokemon):
-        if self["config"].white_list is None or str(pokemon.number) in self["config"].white_list or pokemon.name.lower() in self["config"].white_list:
+        if self["config"]["white_list"] is None or str(pokemon.number) in self["config"]["white_list"] or pokemon.name.lower() in self["config"]["white_list"]:
             return True
         else:
             return False
@@ -115,32 +147,32 @@ class PokemonData(dict):
 
         for p in self["all"]:
             #if it passes the minimum iv test
-            if p.iv >= float(self["config"].minimumIV):			
+            if p.iv >= float(self["config"]["minimumIV"]):			
                 self["best"].append(p)
 
         self["best"].sort(key=lambda x: x.iv, reverse=True)
-	
-    #takes a list of pokemon from the API, 
-    #a candies dict from the API,
-    #a pokedex dict {number,name}, 
-    #a family dict {number, family}, 
-    #an evolve cost dict {number, cost},
-    #and the configuration options
-    def __init__(self, pokemon, candies, pokedex, family, cost, config):
-        self["candy"] = candies
-        self["pokedex"] = pokedex
-        self["family"] = family
-        self["cost"] = cost
-        self["config"] = config
-        self.set_all(pokemon)
-        if self["config"].hard_minimum:
-            self.set_top()
-        else:
-            self.set_best()
-        self.set_evolve_counts()
-        self.set_unique_counts()
-        self.set_needed_counts()
-        self["extra"] = sorted(list(set(self["all"]) - set(self["best"])), key=lambda x: x.iv)
-        self.set_transfer()
-        self["other"] = sorted(list(set(self["extra"]) - set(self["transfer"])), key=lambda x: x.iv, reverse=True)
-        self.set_evolve()
+    
+    def transfer_pokemon(self, pokemon):
+        id = str(pokemon.number)
+        self["session"].releasePokemon(pokemon)
+        if id in list(self["unique_counts"].keys()):
+            self["unique_counts"][id] = self["unique_counts"][id] - 1 #we now have one fewer of these...
+        if pokemon in self["transfer"]:
+            self["transfer"].remove(pokemon)
+        if pokemon in self["all"]:
+            self["all"].remove(pokemon)       
+
+    def evolve_pokemon(self, pokemon):   
+        id = str(pokemon.number)             
+        self["session"].evolvePokemon(pokemon)
+        self["evolve_counts"][id] = self["evolve_counts"][id] - 1
+        self["unique_counts"][id] = self["unique_counts"][id] - 1
+        if pokemon in self["evolve"]:
+            self["evolve"].remove(pokemon)
+        if pokemon in self["all"]:
+            self["all"].remove(pokemon)
+        if pokemon in self["extra"]:
+            self["extra"].remove(pokemon)
+        
+    def reconfigure(self, config, session=None):
+        self.init_all(self["candy"],self["pokedex"],self["family"], self["cost"],config, session)
