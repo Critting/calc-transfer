@@ -50,7 +50,7 @@ class PokemonData(dict):
                     continue
                 id = str(p.number)
                 used[id] = 0 if id not in used else used[id]
-                if id not in self["evolve_counts"] or used[id] < (self["unique_counts"][id] - self["evolve_counts"][id]):
+                if self["config"].force or id not in self["evolve_counts"] or used[id] < (self["unique_counts"][id] - self["evolve_counts"][id]):
                     self["transfer"].append(p)
                 used[id] = used[id] + 1
 

@@ -61,7 +61,8 @@ def init_config():
     parser.add_argument("-el", "--evolve_list", help="Evolve lsit has been deprecated. Please use white list instead (-wl).", action="append")
     parser.add_argument("-wl", "--white_list", help="list of the only pokemon to transfer and evolve by ID or name (ex: -wl 1 = -wl bulbasaur)", action="append")
     parser.add_argument("-bl", "--black_list", help="list of the pokemon not to transfer and evolve by ID or name (ex: -bl 1 = -bl bulbasaur)", action="append")
-    parser.set_defaults(EVOLVE=False, VERBOSE=False)
+    parser.add_argument("-f", "--force", help="forces all pokemon not passing the IV threshold to be transfer candidates regardless of evolution", action="store_true")
+    parser.set_defaults(EVOLVE=False, VERBOSE=False, FORCE=False)
     config = parser.parse_args()
 	  
     # Passed in arguments shoud trump
