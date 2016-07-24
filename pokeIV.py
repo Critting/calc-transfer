@@ -13,7 +13,7 @@ import getpass
 import csv
 import time
 
-from pokemondata import PokemonData
+from pokemondataold import PokemonData
 
 sys.path.insert(0, './pogo')
 from custom_exceptions import GeneralPogoException
