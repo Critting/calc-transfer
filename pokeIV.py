@@ -68,7 +68,13 @@ def init_config():
     # Passed in arguments shoud trump
     for key in config.__dict__:
         if key in load and config.__dict__[key] is None and load[key]:
-            config.__dict__[key] = str(load[key])
+            if key == "black_list" or key == "white_list":
+                config.__dict__[key] = str(load[key]).split(',')
+            else:
+                config.__dict__[key] = str(load[key])
+        elif key in load and (type(config.__dict__[key]) == type(True)) and not config.__dict__[key] and load[key]: #if it's boolean and false
+            if str(load[key]) == "True":
+                config.__dict__[key] = True
 
     if config.__dict__["password"] is None:
         logging.info("Secure Password Input (if there is no password prompt, use --password <pw>):")
