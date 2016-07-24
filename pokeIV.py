@@ -58,6 +58,7 @@ def init_config():
     parser.add_argument("-hm", "--hard_minimum", help="transfer candidates will be selected if they are below minimumIV (will transfer unique pokemon)", action="store_true")
     parser.add_argument("-cp", "--cp_override", help="will keep pokemon that have CP equal to or above the given limit, regardless of IV")
     parser.add_argument("-v", "--verbose", help="displays additional information about each pokemon", action="store_true")
+    parser.add_argument("-el", "--evolve_list", help="Evolve lsit has been deprecated. Please use white list instead (-wl).", action="append")
     parser.add_argument("-wl", "--white_list", help="list of the only pokemon to transfer and evolve by ID or name (ex: -wl 1 = -wl bulbasaur)", action="append")
     parser.add_argument("-bl", "--black_list", help="list of the pokemon not to transfer and evolve by ID or name (ex: -bl 1 = -bl bulbasaur)", action="append")
     parser.set_defaults(EVOLVE=False, VERBOSE=False)
@@ -69,11 +70,11 @@ def init_config():
             config.__dict__[key] = str(load[key])
 
     if config.__dict__["password"] is None:
-        log.info("Secure Password Input (if there is no password prompt, use --password <pw>):")
+        logging.info("Secure Password Input (if there is no password prompt, use --password <pw>):")
         config.__dict__["password"] = getpass.getpass()
 
     if config.auth_service not in ['ptc', 'google']:
-        log.error("Invalid Auth service specified! ('ptc' or 'google')")
+        logging.error("Invalid Auth service specified! ('ptc' or 'google')")
         return None
         
     if config.__dict__["minimumIV"] is None:
@@ -84,6 +85,14 @@ def init_config():
         config.__dict__["evolution_delay"] = "25"
     if config.__dict__["transfer_delay"] is None:
         config.__dict__["transfer_delay"] = "10"
+    
+    if config.white_list is not None and config.black_list is not None:
+        logging.error("Black list and white list can not be used together.")
+        return
+    
+    if config.evolve_list is not None:
+        logging.error("Evolve lsit has been deprecated. Please use white list instead (-wl).")
+        return
     
     if config.white_list is not None:
         config.white_list = [x.lower() for x in config.white_list]
