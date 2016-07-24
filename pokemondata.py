@@ -36,7 +36,7 @@ class PokemonData(dict):
             elif p.iv >= float(self["config"].minimumIV):
                 self["best"].append(p)
             #if cp_override is set, check CP
-            elif self["config"].cp_override is not None and self["config"].cp_override > 0 and int(p.cp) >= int(self["config"].cp_override):
+            elif self["config"].cp_override is not None and int(self["config"].cp_override) > 0 and int(p.cp) >= int(self["config"].cp_override):
                 self["best"].append(p)
 
         self["best"].sort(key=lambda x: x.iv, reverse=True)
