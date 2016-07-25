@@ -172,8 +172,9 @@ class PokeIVWindow(tk.Frame):
         tree = ttk.Treeview(frame, columns=list(cols["text"][1:]) + ["id"])
         tree.config(displaycolumns=list(cols["text"][1:]))
         for i, x in enumerate(cols["text"]):
-            tree.heading('#'+str(i), text=x)
-            tree.column('#'+str(i), width=cols["width"][i], stretch="yes")
+            col = '#'+str(i)
+            tree.heading(col, text=x, command=lambda i=i: self.sort_tree_column(tree, i, False))
+            tree.column(col, width=cols["width"][i], stretch="yes")
         for p in pokemon:
             info = self.get_info(p)
             tree.insert('', 'end', text=info[0], values=list(info[1:]) + [p.id])
@@ -199,8 +200,9 @@ class PokeIVWindow(tk.Frame):
                 'width': (100, 30, 30, 30)}
         tree = ttk.Treeview(frame, columns=cols["text"][1:])
         for i, x in enumerate(cols["text"]):
-            tree.heading('#'+str(i), text=x)
-            tree.column('#'+str(i), width=cols["width"][i], stretch="yes")
+            col = '#'+str(i)
+            tree.heading(col, text=x, command=lambda i=i: self.sort_tree_column(tree, i, False))
+            tree.column(col, width=cols["width"][i], stretch="yes")
         for id in list(self.data["evolve_counts"].keys()):
             if id in self.data["needed_counts"] and id in self.data["unique_counts"] and id in self.data["evolve_counts"]:
                 info = (self.data["pokedex"][id],self.data["evolve_counts"][id],self.data["unique_counts"][id],self.data["needed_counts"][id])
@@ -221,16 +223,37 @@ class PokeIVWindow(tk.Frame):
         frame.scroll = scroll
         frame.title = title
         return frame
+        
+    def sort_tree_column(self, tree, col, reverse):
+        l = []
+        if col == 0:
+            l = [(tree.item(k, "text"), k) for k in tree.get_children('')]
+        else:
+            l = [(tree.set(k, "#"+str(col)), k) for k in tree.get_children('')]
+        
+        try:
+            l.sort(key=lambda t: int(t[0]), reverse=reverse)
+        except ValueError:
+            l.sort(reverse=reverse)
+            
+        for i, (val, k) in enumerate(l):
+            tree.move(k, '', i)
+            
+        tree.heading("#"+str(col), command=lambda: self.sort_tree_column(tree, col, not reverse))
     
     def clear_trees(self, save=None):
         if save != self.best_window.tree:
-            self.best_window.tree.selection_set([])
+            for sel in self.best_window.tree.selection():
+                self.best_window.tree.selection_remove(sel)
         if save != self.other_window.tree:
-            self.other_window.tree.selection_set([])
+            for sel in self.other_window.tree.selection():
+                self.other_window.tree.selection_remove(sel)
         if save != self.transfer_window.tree:
-            self.transfer_window.tree.selection_set([])
+            for sel in self.transfer_window.tree.selection():
+                self.transfer_window.tree.selection_remove(sel)
         if save != self.evolve_window.tree:
-            self.evolve_window.tree.selection_set([])
+            for sel in self.evolve_window.tree.selection():
+                self.evolve_window.tree.selection_remove(sel)
         
     def get_info(self,pokemon):
         if self.config["verbose"]:
