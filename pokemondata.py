@@ -155,24 +155,16 @@ class PokemonData(dict):
     def transfer_pokemon(self, pokemon):
         id = str(pokemon.number)
         self["session"].releasePokemon(pokemon)
-        if id in list(self["unique_counts"].keys()):
-            self["unique_counts"][id] = self["unique_counts"][id] - 1 #we now have one fewer of these...
-        if pokemon in self["transfer"]:
-            self["transfer"].remove(pokemon)
-        if pokemon in self["all"]:
-            self["all"].remove(pokemon)       
+        self.update()
 
     def evolve_pokemon(self, pokemon):   
-        id = str(pokemon.number)             
+        id = str(pokemon.number)
         self["session"].evolvePokemon(pokemon)
-        self["evolve_counts"][id] = self["evolve_counts"][id] - 1
-        self["unique_counts"][id] = self["unique_counts"][id] - 1
-        if pokemon in self["evolve"]:
-            self["evolve"].remove(pokemon)
-        if pokemon in self["all"]:
-            self["all"].remove(pokemon)
-        if pokemon in self["extra"]:
-            self["extra"].remove(pokemon)
+        self.update()
+        
+    def update(self):
+        inventory = self["session"].getInventory()
+        self.init_all(inventory["candies"],self["pokedex"],self["family"], self["cost"],self["config"],self["session"],inventory["party"])
         
     def reconfigure(self, config, session=None):
         self.init_all(self["candy"],self["pokedex"],self["family"], self["cost"],config, session)

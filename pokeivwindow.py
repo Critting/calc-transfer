@@ -233,6 +233,8 @@ class PokeIVWindow(tk.Frame):
         self.enable_buttons()
         if self.data["transfer"]:
             self.transfer_pokemon()
+        else:
+            self.log_info("idle...")
         self.reset_windows()
 
     def evolve(self, p):
@@ -240,6 +242,8 @@ class PokeIVWindow(tk.Frame):
         self.enable_buttons()
         if self.data["evolve"]:
             self.evolve_pokemon()
+        else:
+            self.log_info("idle...")
         self.reset_windows()
     
     def cancel_actions(self):
