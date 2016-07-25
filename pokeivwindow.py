@@ -135,7 +135,7 @@ class PokeIVWindow(tk.Frame):
         self.other_window.pack(side="right", fill="both")
         self.transfer_window = self.create_window('Transfer candidates', self.data["transfer"], btm_windows)
         self.transfer_window.pack(side="left", fill="both")
-        self.evolve_window = self.create_window('Evolution candidates', self.data["evolve"], btm_windows)
+        self.evolve_window = self.create_window('Evolution candidates ['+str(self.data["evolve_counts"]["total"])+' / '+str(self.config["max_evolutions"])+']', self.data["evolve"], btm_windows)
         self.evolve_window.pack(side="right", fill="both")
     
         top_windows.pack(side="top", fill="both")
