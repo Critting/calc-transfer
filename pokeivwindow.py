@@ -5,7 +5,7 @@ import tkinter as tk
 
 class PokeIVWindow(tk.Frame):
     def __init__(self, config, data, session, master=None):
-        super().__init__(master)
+        tk.Frame.__init__(self,master)
         self.data = data
         self.session = session
         self.logText = tk.StringVar()
