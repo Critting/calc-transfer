@@ -69,15 +69,26 @@ class PokeIVWindow(tk.Frame):
         return
         
     def reset_windows(self):
-        self.list_windows.pack_forget()
-        self.list_windows = self.create_list_windows(self.master_frame)
-        self.list_windows.pack(side="left", fill="both")
+        #self.list_windows.pack_forget()
+        #self.list_windows = self.create_list_windows(self.master_frame)
+        #self.list_windows.pack(side="left", fill="both")
+        
+        self.reset_tree_window(self.best_window.tree, self.data["best"])
+        self.reset_tree_window_other(self.other_window.tree)
+        self.reset_tree_window(self.transfer_window.tree, self.data["transfer"])
+        self.reset_tree_window(self.evolve_window.tree, self.data["evolve"])
+        
 
     def create_widgets(self):
         self.master_frame = tk.Frame(self)        
         
-        self.config_button = tk.Button(self.master_frame, text="Config", command=self.show_config_window)
-        self.config_button.pack(side="top", fill="both")
+        topFrame = tk.Frame(self.master_frame)
+        self.config_button = tk.Button(topFrame, text="Config", command=self.show_config_window)
+        self.refresh_button = tk.Button(topFrame, text="Refresh", command=self.refresh, width=4)
+        self.config_button.pack(side="left", fill="both", expand=True)
+        self.refresh_button.pack(side="right", fill="both")
+        topFrame.pack(side="top", fill="both")
+        
         self.list_windows = self.create_list_windows(self.master_frame)
         self.list_windows.pack(side="top", fill="both")
         self.log = tk.Label(self.master_frame, textvariable=self.logText, bg="#D0F0C0", anchor="w", justify="left")
@@ -169,15 +180,18 @@ class PokeIVWindow(tk.Frame):
         title.pack(side="top", fill="both")
         
         cols = self.get_columns()
-        tree = ttk.Treeview(frame, columns=list(cols["text"][1:]) + ["id"])
-        tree.config(displaycolumns=list(cols["text"][1:]))
-        for i, x in enumerate(cols["text"]):
+        tree = ttk.Treeview(frame, columns=list(cols["verbose"][1:]) + ["id"])
+        for i, x in enumerate(cols["verbose"]):
             col = '#'+str(i)
             tree.heading(col, text=x, command=lambda i=i: self.sort_tree_column(tree, i, False))
             tree.column(col, width=cols["width"][i], stretch="yes")
         for p in pokemon:
             info = self.get_info(p)
             tree.insert('', 'end', text=info[0], values=list(info[1:]) + [p.id])
+        if self.config["verbose"]:
+            tree.config(displaycolumns=list(cols["verbose"][1:]))
+        else:
+            tree.config(displaycolumns=list(cols["min"][1:]))    
         tree.pack(side="left", fill="both")
         
         scroll = tk.Scrollbar(frame)
@@ -190,6 +204,33 @@ class PokeIVWindow(tk.Frame):
         frame.scroll = scroll
         frame.title = title
         return frame
+        
+    def reset_tree_window(self, tree, pokemon):
+        for i in tree.get_children():
+            tree.delete(i)
+            
+        for p in pokemon:
+            info = self.get_info(p)
+            tree.insert('', 'end', text=info[0], values=list(info[1:]) + [p.id])
+        
+        cols = self.get_columns()
+        if self.config["verbose"]:
+            tree.config(displaycolumns=list(cols["verbose"][1:]))
+        else:
+            tree.config(displaycolumns=list(cols["min"][1:]))
+
+    def reset_tree_window_other(self, tree):
+        for i in tree.get_children():
+            tree.delete(i)
+            
+        for id in list(self.data["evolve_counts"].keys()):
+            if id in self.data["needed_counts"] and id in self.data["unique_counts"] and id in self.data["evolve_counts"]:
+                info = (self.data["pokedex"][id],self.data["evolve_counts"][id],self.data["unique_counts"][id],self.data["needed_counts"][id])
+                if self.data["needed_counts"][id] <= 0:
+                    tree.insert('','end',text=info[0], values=info[1:-1])
+                else:
+                    tree.insert('','end',text=info[0], values=info[1:])
+        
     
     def create_evolve_count_window(self, name, master):
         frame = tk.Frame(master)
@@ -256,24 +297,12 @@ class PokeIVWindow(tk.Frame):
                 self.evolve_window.tree.selection_remove(sel)
         
     def get_info(self,pokemon):
-        if self.config["verbose"]:
-            return self.get_info_verbose(pokemon)
-        else:
-            return self.get_info_min(pokemon)
-    
-    def get_info_min(self,pokemon):
-        return (str(pokemon.name),str(pokemon.cp),str('{0:>2.2%}').format(pokemon.ivPercent))
-
-    def get_info_verbose(self,pokemon):
         return (str(pokemon.name),str(pokemon.attack),str(pokemon.defense),str(pokemon.stamina),str(pokemon.cp),str('{0:>2.2%}').format(pokemon.ivPercent))
         
     def get_columns(self):
-        if self.config["verbose"]:
-            return {'text': ('POKEMON','ATK','DEF','STA','CP','IV'),
-                    'width': (100,30,30,30,60,60)}
-        else:
-            return {'text': ('POKEMON','CP','IV'),
-                    'width': (100,60,60)}   
+        return {'verbose': ('POKEMON','ATK','DEF','STA','CP','IV'),
+                'min': ('POKEMON','CP','IV'),
+                'width': (100,30,30,30,60,60)}
                     
     def log_info(self, text, level=None):
         self.logText.set(text)
@@ -377,4 +406,8 @@ class PokeIVWindow(tk.Frame):
             self.evolve_ids.remove(id)
         self.enable_buttons()
         self.log_info("idle...")
+        self.reset_windows()
+        
+    def refresh(self):
+        self.data.update()
         self.reset_windows()
