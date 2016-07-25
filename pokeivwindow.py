@@ -16,8 +16,21 @@ class PokeIVWindow(tk.Frame):
         self.config = config
         self.config_boxes = {}
         self.create_widgets()
+        master.bind("<Escape>", self.key_press)
         self.pack()
         
+    def key_press(self, event):
+        self.clear_trees()
+        
+    def best_select(self, event):
+        self.clear_trees(self.best_window.tree)
+        
+    def transfer_select(self, event):
+        self.clear_trees(self.transfer_window.tree)
+    
+    def evolve_select(self, event):
+        self.clear_trees(self.evolve_window.tree)
+    
     def create_config_window(self):
         self.config_window = tk.Toplevel(self)
         self.config_window.wm_title("Config Window")
@@ -131,12 +144,16 @@ class PokeIVWindow(tk.Frame):
         
         self.best_window = self.create_window('Highest IV Pokemon', self.data["best"], top_windows)
         self.best_window.pack(side="left", fill="both")
+        self.best_window.tree.bind('<Button-1>', self.best_select)
         self.other_window = self.create_evolve_count_window('Available evolutions ['+str(self.data["evolve_counts"]["total"])+' / '+str(self.config["max_evolutions"])+']', top_windows)
         self.other_window.pack(side="right", fill="both", expand=True)
+        self.other_window.tree.config(selectmode="none")
         self.transfer_window = self.create_window('Transfer candidates', self.data["transfer"], btm_windows)
         self.transfer_window.pack(side="left", fill="both")
+        self.transfer_window.tree.bind('<Button-1>', self.transfer_select)
         self.evolve_window = self.create_window('Evolution candidates', self.data["evolve"], btm_windows)
         self.evolve_window.pack(side="right", fill="both")
+        self.evolve_window.tree.bind('<Button-1>', self.evolve_select)
     
         top_windows.pack(side="top", fill="both")
         btm_windows.pack(side="bottom", fill="both")
@@ -149,13 +166,14 @@ class PokeIVWindow(tk.Frame):
         title.pack(side="top", fill="both")
         
         cols = self.get_columns()
-        tree = ttk.Treeview(frame, columns=cols["text"][1:])
+        tree = ttk.Treeview(frame, columns=list(cols["text"][1:]) + ["id"])
+        tree.config(displaycolumns=list(cols["text"][1:]))
         for i, x in enumerate(cols["text"]):
             tree.heading('#'+str(i), text=x)
             tree.column('#'+str(i), width=cols["width"][i], stretch="yes")
         for p in pokemon:
             info = self.get_info(p)
-            tree.insert('', 'end', text=info[0], values=info[1:])
+            tree.insert('', 'end', text=info[0], values=list(info[1:]) + [p.id])
         tree.pack(side="left", fill="both")
         
         scroll = tk.Scrollbar(frame)
@@ -168,27 +186,6 @@ class PokeIVWindow(tk.Frame):
         frame.scroll = scroll
         frame.title = title
         return frame
-        
-    def get_info(self,pokemon):
-        if self.config["verbose"]:
-            return self.get_info_verbose(pokemon)
-        else:
-            return self.get_info_min(pokemon)
-    
-    def get_info_min(self,pokemon):
-        return (str(pokemon.name),str(pokemon.cp),str('{0:>2.2%}').format(pokemon.ivPercent))
-
-    def get_info_verbose(self,pokemon):
-        return (str(pokemon.name),str(pokemon.attack),str(pokemon.defense),str(pokemon.stamina),str(pokemon.cp),str('{0:>2.2%}').format(pokemon.ivPercent))
-        
-    def get_columns(self):
-        if self.config["verbose"]:
-            return {'text': ('POKEMON','ATK','DEF','STA','CP','IV'),
-                    'width': (100,30,30,30,60,60)}
-        else:
-            return {'text': ('POKEMON','CP','IV'),
-                    'width': (100,60,60)}   
-                    
     
     def create_evolve_count_window(self, name, master):
         frame = tk.Frame(master)
@@ -221,7 +218,36 @@ class PokeIVWindow(tk.Frame):
         frame.scroll = scroll
         frame.title = title
         return frame
-                
+    
+    def clear_trees(self, save=None):
+        if save != self.best_window.tree:
+            self.best_window.tree.selection_set([])
+        if save != self.other_window.tree:
+            self.other_window.tree.selection_set([])
+        if save != self.transfer_window.tree:
+            self.transfer_window.tree.selection_set([])
+        if save != self.evolve_window.tree:
+            self.evolve_window.tree.selection_set([])
+        
+    def get_info(self,pokemon):
+        if self.config["verbose"]:
+            return self.get_info_verbose(pokemon)
+        else:
+            return self.get_info_min(pokemon)
+    
+    def get_info_min(self,pokemon):
+        return (str(pokemon.name),str(pokemon.cp),str('{0:>2.2%}').format(pokemon.ivPercent))
+
+    def get_info_verbose(self,pokemon):
+        return (str(pokemon.name),str(pokemon.attack),str(pokemon.defense),str(pokemon.stamina),str(pokemon.cp),str('{0:>2.2%}').format(pokemon.ivPercent))
+        
+    def get_columns(self):
+        if self.config["verbose"]:
+            return {'text': ('POKEMON','ATK','DEF','STA','CP','IV'),
+                    'width': (100,30,30,30,60,60)}
+        else:
+            return {'text': ('POKEMON','CP','IV'),
+                    'width': (100,60,60)}   
                     
     def log_info(self, text, level=None):
         self.logText.set(text)
@@ -232,7 +258,34 @@ class PokeIVWindow(tk.Frame):
         else:
             self.log.configure(bg="#D0F0C0")
     
+    def pokemon_selected_action(self, action):
+        if action == "evolve" and self.evolve_window.tree.selection():
+            id = self.evolve_window.tree.item(self.evolve_window.tree.selection()[0], "values")[-1]
+            self.data.evolve_pokemon(id)
+            return True
+        elif action == "transfer":
+            if self.best_window.tree.selection():
+                id = self.best_window.tree.item(self.best_window.tree.selection()[0], "values")[-1]
+                self.data.transfer_pokemon(id)
+                return True
+            elif self.transfer_window.tree.selection():
+                id = self.transfer_window.tree.item(self.transfer_window.tree.selection()[0], "values")[-1]
+                self.data.transfer_pokemon(id)
+                return True
+            elif self.evolve_window.tree.selection():
+                id = self.evolve_window.tree.item(self.evolve_window.tree.selection()[0], "values")[-1]
+                self.data.transfer_pokemon(id)
+                return True
+        return False
+    
     def evolve_pokemon(self):
+        #if there was a pokemon selected from evolve list, evolve only that
+        if self.pokemon_selected_action("evolve"):
+            self.log_info('evolved pokemon', "working")
+            self.evolve_ids.append(self.evolve_button.after(3000, lambda: self.log_info("idle...")))
+            self.reset_windows()
+            return
+        
         if self.data["evolve"]:
             p = self.data["evolve"][0]
             id = str(p.number)
@@ -244,6 +297,13 @@ class PokeIVWindow(tk.Frame):
             self.reset_windows()
         
     def transfer_pokemon(self):
+        #if there was a pokemon selected from any list, transfer only that
+        if self.pokemon_selected_action("transfer"):
+            self.log_info('transfered pokemon', "working")
+            self.transfer_ids.append(self.transfer_button.after(3000, lambda: self.log_info("idle...")))
+            self.reset_windows()
+            return
+        
         if self.data["transfer"]:
             p = self.data["transfer"][0]
             id = str(p.number)

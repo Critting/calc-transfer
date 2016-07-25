@@ -152,14 +152,28 @@ class PokemonData(dict):
 
         self["best"].sort(key=lambda x: x.iv, reverse=True)
     
+    def get_pokemon_from_id(self, id):
+        for p in self["all"]:
+            if int(p.id) == int(id):
+                return p
+        return None
+    
     def transfer_pokemon(self, pokemon):
-        id = str(pokemon.number)
-        self["session"].releasePokemon(pokemon)
+        if isinstance(pokemon, str) or isinstance(pokemon, int):
+            p = self.get_pokemon_from_id(int(pokemon))
+            if p is not None:
+                self["session"].releasePokemon(p)
+        else:
+            self["session"].releasePokemon(pokemon)
         self.update()
 
-    def evolve_pokemon(self, pokemon):   
-        id = str(pokemon.number)
-        self["session"].evolvePokemon(pokemon)
+    def evolve_pokemon(self, pokemon):
+        if isinstance(pokemon, str) or isinstance(pokemon, int):
+            p = self.get_pokemon_from_id(int(pokemon))
+            if p is not None:
+                self["session"].evolvePokemon(p)
+        else:
+            self["session"].evolvePokemon(pokemon)
         self.update()
         
     def update(self):
