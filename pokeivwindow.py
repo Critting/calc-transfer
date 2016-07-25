@@ -131,11 +131,11 @@ class PokeIVWindow(tk.Frame):
         
         self.best_window = self.create_window('Highest IV Pokemon', self.data["best"], top_windows)
         self.best_window.pack(side="left", fill="both")
-        self.other_window = self.create_window('Other Pokemon', self.data["other"], top_windows)
-        self.other_window.pack(side="right", fill="both")
+        self.other_window = self.create_evolve_count_window('Available evolutions ['+str(self.data["evolve_counts"]["total"])+' / '+str(self.config["max_evolutions"])+']', top_windows)
+        self.other_window.pack(side="right", fill="both", expand=True)
         self.transfer_window = self.create_window('Transfer candidates', self.data["transfer"], btm_windows)
         self.transfer_window.pack(side="left", fill="both")
-        self.evolve_window = self.create_window('Evolution candidates ['+str(self.data["evolve_counts"]["total"])+' / '+str(self.config["max_evolutions"])+']', self.data["evolve"], btm_windows)
+        self.evolve_window = self.create_window('Evolution candidates', self.data["evolve"], btm_windows)
         self.evolve_window.pack(side="right", fill="both")
     
         top_windows.pack(side="top", fill="both")
@@ -148,7 +148,7 @@ class PokeIVWindow(tk.Frame):
         title = tk.Label(frame, text=name)
         title.pack(side="top", fill="both")
         
-        cols = columns=self.get_columns()
+        cols = self.get_columns()
         tree = ttk.Treeview(frame, columns=cols["text"][1:])
         for i, x in enumerate(cols["text"]):
             tree.heading('#'+str(i), text=x)
@@ -188,6 +188,40 @@ class PokeIVWindow(tk.Frame):
         else:
             return {'text': ('POKEMON','CP','IV'),
                     'width': (100,60,60)}   
+                    
+    
+    def create_evolve_count_window(self, name, master):
+        frame = tk.Frame(master)
+        title = tk.Label(frame, text=name)
+        title.pack(side="top", fill="both")
+        
+        cols = {'text': ('POKEMON','EVOLUTIONS','COUNT','NEEDED'),
+                'width': (100, 30, 30, 30)}
+        tree = ttk.Treeview(frame, columns=cols["text"][1:])
+        for i, x in enumerate(cols["text"]):
+            tree.heading('#'+str(i), text=x)
+            tree.column('#'+str(i), width=cols["width"][i], stretch="yes")
+        for id in list(self.data["evolve_counts"].keys()):
+            if id in self.data["needed_counts"] and id in self.data["unique_counts"] and id in self.data["evolve_counts"]:
+                info = (self.data["pokedex"][id],self.data["evolve_counts"][id],self.data["unique_counts"][id],self.data["needed_counts"][id])
+                if self.data["needed_counts"][id] <= 0:
+                    tree.insert('','end',text=info[0], values=info[1:-1])
+                else:
+                    tree.insert('','end',text=info[0], values=info[1:])
+        
+        tree.pack(side="left", fill="both", expand=True)
+        
+        scroll = tk.Scrollbar(frame)
+        scroll.pack(side="right", fill="both")
+        
+        scroll.config(command=tree.yview)
+        tree.config(yscrollcommand=scroll.set)
+        
+        frame.tree = tree
+        frame.scroll = scroll
+        frame.title = title
+        return frame
+                
                     
     def log_info(self, text, level=None):
         self.logText.set(text)
